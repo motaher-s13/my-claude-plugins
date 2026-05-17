@@ -1,0 +1,18 @@
+{
+  "name": "my-claude-plugins",
+  "owner": {
+    "name": "motaher",
+    "email": "motaher@shipday.com"
+  },
+  "description": "Personal collection of Claude Code plugins and skills.",
+  "plugins": [
+    {
+      "name": "code-review",
+      "description": "Context-aware code review orchestrator that dispatches parallel sub-skill checks (Java/Spring, Python/Flask, MySQL, MongoDB, Redis, RabbitMQ) and produces line-anchored findings.",
+      "source": "./plugins/code-review",
+      "version": "0.1.0",
+      "category": "code-review",
+      "tags": ["code-review", "spring", "flask", "mysql", "mongodb", "redis", "rabbitmq"]
+    }
+  ]
+}

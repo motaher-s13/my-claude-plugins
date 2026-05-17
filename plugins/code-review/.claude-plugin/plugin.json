@@ -1,0 +1,10 @@
+{
+  "name": "code-review",
+  "version": "0.1.0",
+  "description": "Context-aware code review orchestrator with parallel sub-skill dispatch. Reads diffs, picks relevant checks based on stack (Java/Spring, Python/Flask, MySQL, MongoDB, Redis, RabbitMQ), runs them in parallel, and returns line-anchored findings.",
+  "author": {
+    "name": "motaher",
+    "email": "motaher@shipday.com"
+  },
+  "keywords": ["code-review", "pr-review", "spring-boot", "flask", "mongodb", "redis", "rabbitmq"]
+}
