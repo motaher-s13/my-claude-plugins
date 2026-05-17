@@ -15,7 +15,7 @@ Prereqs: `gh auth login` (so git can clone the private repo).
 In a Claude Code session:
 
 ```
-/plugin marketplace add git@github.com:motaher13/my-claude-plugins.git
+/plugin marketplace add git@github.com:motaher-s13/my-claude-plugins.git
 /plugin install code-review@my-claude-plugins
 ```
 
