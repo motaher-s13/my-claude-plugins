@@ -23,15 +23,9 @@ This stack uses RabbitMQ with **direct routing to named queues via the default e
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project messaging conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | `autoAck=true` (or `ackMode=NONE`) on a consumer doing important work (data loss on crash), no DLQ on a queue that can receive poison messages (infinite requeue loop blocks consumer), non-idempotent handler with at-least-once delivery, channel shared across threads (channels are NOT thread-safe), publish without persistence on a durable workflow |
-| 🟠 High | `defaultRequeueRejected=true` on uncaught exception (causes poison message loop), prefetch `0` / unlimited (consumer OOM on backlog), no timeout / circuit breaker on downstream call inside listener, no publisher confirms when message loss is unacceptable, `requeue=true` in `AmqpRejectAndDontRequeueException` misuse |
-| 🟡 Medium | Prefetch too high for slow message handler (head-of-line blocking), missing `x-message-ttl` on a queue that could accumulate stale messages, mixing transactional and confirm channels, queue not durable but messages are durable (or vice versa), `Exchange` / `Binding` bean declared (out of convention — verify intent) |
-| 💭 Low | Naming inconsistency (queue / routing-key conventions), minor metric/log improvement |
-| ⚠️ Manual | Cannot verify from code — developer must check broker config, monitoring metrics, or run a chaos test |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 ## Your Focus Areas
 

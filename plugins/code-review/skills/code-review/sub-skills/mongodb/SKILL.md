@@ -23,15 +23,9 @@ Any **read** from Mongo inside a service — `find*`, `query`, `aggregate`, `cou
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) — but note that "Mongo is logging-only" is a hard rule for this stack regardless
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | **Any read operation from Mongo inside a service** (find, query, aggregate, count, exists, derived-name `findBy*`, `MongoTemplate.find*`/`stream`/`aggregate`). Mongo is logging-only — reads belong elsewhere (MySQL, Redis, or out-of-band analytics). |
-| 🟠 High | Write that can exceed 16MB BSON limit (unbounded embedded array on a log doc), missing TTL index on a log collection that grows forever, write concern `w:0` on logs that operators expect to be durable |
-| 🟡 Medium | Single-doc writes inside a loop instead of `insertMany` / bulk ops (perf), document modeling that bakes in a future reads-anti-pattern (suggests reads are coming), missing index annotation on a field used for TTL or eviction |
-| 💭 Low | Naming inconsistency on collection / field |
-| ⚠️ Manual | Cannot verify from code — developer must check ops tooling, collection size growth |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Any read from Mongo is Critical (see Core Rule above); other examples are inline in the focus areas.
 
 ## Your Focus Areas
 

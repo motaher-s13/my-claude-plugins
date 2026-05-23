@@ -19,15 +19,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project DB conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | SQL injection via string concatenation in raw SQL/JPQL/native query, transaction missing for multi-step write that must be atomic, `EAGER` fetch causing certain Cartesian explosion |
-| 🟠 High | N+1 in hot path (loop iterating entities and triggering lazy loads), unbounded `findAll()` on a growable table, missing index causing full-table scan on hot query, `OpenSessionInView` masking N+1 silently, write inside a long-running read transaction |
-| 🟡 Medium | `SELECT *` / full entity fetched when a projection would do, transaction scope wider than needed (holding connection across non-DB work), missing `@BatchSize` / fetch join opportunity, lazy field accessed in DTO mapping outside session |
-| 💭 Low | Naming inconsistency on repository method, minor query optimization opportunity |
-| ⚠️ Manual | Cannot verify from code — developer must check query plan in production (`EXPLAIN ANALYZE`) or measure under realistic load |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 **This check owns all relational-DB N+1 analysis.** The `performance` check handles non-DB N+1 (API loops, repeated computation). Do not duplicate.
 

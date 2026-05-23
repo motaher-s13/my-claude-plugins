@@ -17,15 +17,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project caching conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | `KEYS *` / `SMEMBERS` / `HGETALL` on a large collection in production code (blocks Redis single-thread), distributed lock without TTL (deadlock on crash), cache-of-truth pattern where data loss is unrecoverable, secret stored unencrypted in a long-lived key |
-| 🟠 High | Blocking command (`BLPOP`, `WAIT`) on a request thread, `SCAN` iterating an unbounded set without yielding, no TTL on a key that grows unbounded, cache invalidation gap (write to DB succeeds, cache evict fails silently — stale forever) |
-| 🟡 Medium | N round-trips that could be pipelined, large value (>100KB) stored per key, Spring `@Cacheable` on method that returns a `null` differently than "absent" (Spring's default doesn't cache `null`), lock TTL too short for the protected work |
-| 💭 Low | Naming inconsistency on keys, minor optimization opportunity |
-| ⚠️ Manual | Cannot verify from code — developer must check key size distribution / RTT under production load |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 ## Your Focus Areas
 

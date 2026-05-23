@@ -38,15 +38,9 @@ Severity guide:
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project logging and error conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | Swallowed exception causing silent data corruption / incorrect state, secret leaked in error response or log, stack-trace exposure in prod error response, **disk write to hardcoded persistent path with no cleanup** |
-| 🟠 High | Sensitive data (PII, tokens, passwords) in log output, broad `catch (Exception e)` that hides specific failure modes, resource leak in error path (file/stream/connection not closed), retry on non-idempotent operation, **disk write missing cleanup in the error path**, **disk write to non-temp directory** |
-| 🟡 Medium | Poor error message (no context for diagnosis), wrong log level (warn for actual errors, error for expected warns), missing context fields, lossy exception wrapping (`throw new RuntimeException(e.getMessage())` drops cause), **disk write where streaming would be simpler** |
-| 💭 Low | Logging improvement opportunity, additional structured-log field that'd help operators |
-| ⚠️ Manual | Cannot verify from code — developer must observe log output at runtime |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). The Disk-Write Rule above already gives concrete severity bands for file writes; other category examples are inline in the focus areas below.
 
 ## Your Focus Areas
 

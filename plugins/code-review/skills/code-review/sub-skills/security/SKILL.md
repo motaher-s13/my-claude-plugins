@@ -17,17 +17,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project auth and security conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | SQL injection, command injection, deserialization RCE, exposed credentials, auth bypass, SSRF to internal services, Spring4Shell-style template-engine RCE |
-| 🟠 High | Missing auth check on a sensitive route, JWT signature verification skipped or weak algorithm allowed, CORS misconfiguration with credentials, rate limiting gap on auth endpoint, mass assignment of privileged fields, secret in logs |
-| 🟡 Medium | Sensitive data in logs / error responses, missing security header, overly permissive input, CSRF disabled on cookie-auth state-changing route, weak password policy |
-| 💭 Low | Defense-in-depth suggestion, minor hardening opportunity, missing rate limit on non-sensitive route |
-| ⚠️ Manual | Cannot verify from code — developer must pen-test the flow, check live config, or test a specific attack |
-
-For Critical and High findings, briefly explain the attack vector.
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). For Critical and High findings, briefly explain the attack vector. Category examples are inline in the focus areas.
 
 ## Your Focus Areas
 

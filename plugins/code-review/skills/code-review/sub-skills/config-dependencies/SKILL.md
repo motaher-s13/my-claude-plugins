@@ -22,15 +22,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project config conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | Known CVE in newly added/upgraded dependency, secret committed to source (real API key, real password), `0.0.0.0` bind on a privileged service exposed publicly |
-| 🟠 High | Unmaintained dependency (last release > 2 years), `gradle.lockfile` out of sync with declared deps, dynamic version (`+`, `latest.release`) on a non-test dep, Dockerfile running as root, env var with sensitive value committed (even non-prod) |
-| 🟡 Medium | Missing env var documentation, new dep added without size / license check, license incompatible with project license (GPL added to Apache project), profile separation broken (prod values in `application.properties` default), `pom.xml` introduced (out of convention — Gradle is the standard), `application.yml` introduced (out of convention — `.properties` is the standard) |
-| 💭 Low | Dependency version unpinned (specific minor acceptable, dynamic risky), config formatting inconsistency |
-| ⚠️ Manual | Cannot verify from code — developer must check CVE DB, license terms, or runtime config |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 ## Your Focus Areas
 

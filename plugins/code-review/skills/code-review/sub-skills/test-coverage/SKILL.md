@@ -51,15 +51,9 @@ If you can tell from the diff a test will hit a real service, flag it. If you ca
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project test conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | No tests for changed critical-path / security-sensitive / financial logic, test deleted that previously caught a real bug, test modified to silently make the fail go away without fixing the code |
-| 🟠 High | Public API / controller endpoint change with no test, error scenario untested on a risky path, integration test mocks the thing under test, **test connects to a real shared DB / Redis / RabbitMQ / external API** (must be replaced with in-memory substitute or skipped) |
-| 🟡 Medium | Missing edge case (null/empty/boundary), flaky pattern (hardcoded sleeps, network in unit test), weak assertion (`assertNotNull` only) |
-| 💭 Low | Naming inconsistency, missing scenario name in test method, minor structural improvement |
-| ⚠️ Manual | Cannot verify from code — coverage tooling not available, or developer must check integration-test coverage in CI |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Tests hitting real shared infra → High (see In-Memory Rule above). Other examples are inline in the focus areas.
 
 ## Your Focus Areas
 

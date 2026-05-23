@@ -17,15 +17,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project transaction conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | Multi-step write that must be atomic with NO transaction (or the transaction is silently bypassed via self-invocation), rollback skipped because exception is a checked exception and `rollbackFor` not configured, two transactions where one was expected (REQUIRES_NEW outer commits before inner finishes), data corruption from incorrect isolation |
-| 🟠 High | `@Transactional` on a method called from within the same class (no proxy → no tx), external I/O (HTTP/RabbitMQ/Redis) inside a long DB transaction (connection starvation + dual-write inconsistency), `@Async` + `@Transactional` confusion (new thread, no tx), `LazyInitializationException` post-tx in DTO mapping |
-| 🟡 Medium | Missing `readOnly = true` on read-only service methods, transaction scope too wide (wraps non-DB work), `propagation = MANDATORY` without verification that a parent tx always exists, `timeout` not set on a long operation |
-| 💭 Low | `@Transactional` annotation placement inconsistency, comment / naming on transactional intent |
-| ⚠️ Manual | Cannot verify from code — developer must trace runtime behavior, especially in async/scheduled paths |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 ## Your Focus Areas
 

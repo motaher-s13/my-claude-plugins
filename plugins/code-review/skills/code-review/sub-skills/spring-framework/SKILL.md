@@ -17,15 +17,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project Spring conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | Actuator sensitive endpoint exposed without auth (`/actuator/env`, `/actuator/heapdump`), secret hardcoded in `application.properties` committed to repo, scope mismatch causing data corruption (singleton holding request-scoped state) |
-| 🟠 High | Field injection blocking testability and hiding null deps, circular dependency masked by `@Lazy`, `@Scheduled` / `@Async` annotation present but `@EnableScheduling` / `@EnableAsync` missing → silent no-op, `@Bean` method in a `@Component` (not `@Configuration`) → no CGLIB caching → multiple instances |
-| 🟡 Medium | `@Value` with no default and missing property → context fails to start in some envs, `@ConfigurationProperties` missing `@Validated` on a critical config, two `@Profile`s overlap leading to ambiguous bean, multiple `@Bean` of same type without `@Primary` or `@Qualifier` |
-| 💭 Low | Naming inconsistency on bean names, missing `@Component` stereotype refinement (use `@Service` for services), `application-{profile}.properties` formatting |
-| ⚠️ Manual | Cannot verify from code — developer must check runtime startup logs, bean graph, or property resolution |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 ## Your Focus Areas
 

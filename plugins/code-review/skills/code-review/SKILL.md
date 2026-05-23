@@ -62,9 +62,15 @@ If any preflight fails, stop and report clearly. Don't proceed with empty or inv
 
 ### Diff Size Check
 
-Count approximate added+removed lines:
+Count approximate added+removed lines and changed file count. The size drives both warnings and the dispatch strategy in Step 5.
+
+- **≤ 50 lines AND ≤ 3 files (tiny diff):** Don't dispatch parallel sub-skill agents. Review inline in the orchestrator: read each sub-skill SKILL.md only if its triggers fire, apply the criteria yourself, return one consolidated set of findings. The fan-out overhead exceeds the diff's surface area.
+- **51–500 lines:** Normal dispatch, but cap at 5 sub-skill agents max. Pick the 5 most likely to find something based on what the diff touches.
+- **501–3000 lines:** Normal dispatch, no agent cap.
 - **> 3000 lines:** Warn the developer. Ask if they want to scope to specific files/directories.
 - **> 8000 lines:** Strongly recommend scoping. Suggest reviewing in batches by directory or commit.
+
+**Why the tiny-diff short-circuit:** dispatching 8 parallel agents for a 20-line change spends thousands of tokens on framing, sub-skill loading, and agent reasoning to produce findings the orchestrator can spot directly. Inline review keeps small reviews cheap.
 
 ## Severity Scale
 
@@ -132,17 +138,21 @@ Based on what you've read in Steps 1–2, pick which sub-skills to run. **Do not
 - Touched `@Document` / `MongoTemplate` / `MongoRepository`? → `mongodb` (will block reads)
 - Touched `RedisTemplate` / `@Cacheable` / Jedis/Lettuce? → `redis`
 - Touched `@RabbitListener` / `RabbitTemplate` / queue config? → `rabbitmq`
-- Touched `@Transactional`? → `transactional-faults`
-- Shared mutable state, counters, `@Async`, concurrent writes? → `race-conditions`
-- Spring config / `@Configuration` / `@Bean` / profiles / Actuator? → `spring-framework`
-- Controllers / auth code / input handling / secrets / JWT? → `security`
-- Hot paths / loops / large data / long-running work / external API calls? → `performance`
-- try/catch / exception handlers / logging / file writes? → `error-handling`
-- Production code change in scope of testable behavior? → `test-coverage`
-- Any non-trivial source change? → `code-quality`
-- `build.gradle` / `.env` / `application.properties`? → `config-dependencies`
+Each trigger below requires a **concrete signal in the diff** — not "could touch this area." If you're squinting to justify a sub-skill, skip it.
 
-A brief one-line note in your output is fine ("Running: relational-db, transactional-faults, race-conditions, security, test-coverage, error-handling. Skipping the rest — not touched."). Then move on to Step 4.
+- `@Transactional` added/modified in diff → `transactional-faults`
+- Shared mutable state, counters, `@Async`, or concurrent writes in diff → `race-conditions`
+- `@Configuration`, `@Bean`, profile-conditional bean, or Actuator config in diff → `spring-framework`
+- Controller endpoints, auth code, JWT, input deserialization, or `SecurityFilterChain` in diff → `security`
+- Hot path / loops over collections / external HTTP client construction in diff → `performance`
+- try/catch, exception handlers, logging, or any disk-write call site in diff → `error-handling`
+- Production code change AND existing test file in repo (or expected to add one) → `test-coverage`
+- `build.gradle`, `.env`, `application.properties`, or Dockerfile in diff → `config-dependencies`
+- `code-quality`: only run when no other source-touching sub-skill ran (it's the catch-all). Don't pile it on top of the others — they already cover code quality in their domain.
+
+**Selection budget.** For diffs of 51–500 lines, cap at 5 agents. Pick the 5 with the strongest signals. For larger diffs, no cap, but still apply "concrete signal required."
+
+A brief one-line note in your output is fine ("Running: relational-db, transactional-faults, security, performance, error-handling. Skipping the rest — no signal."). Then move on to Step 4.
 
 ### Step 4 — Run tests and check coverage
 
@@ -173,37 +183,33 @@ Once you've selected the relevant sub-skills (Step 3) and tests have been handle
 For each selected check, spawn a `general-purpose` agent with a prompt like:
 
 ```
-Read the review check definition at
-<this-skill-dir>/sub-skills/{check-name}/SKILL.md
-where <this-skill-dir> is the absolute directory this SKILL.md file lives in
-(typically ~/.claude/skills/code-review/ or .claude/skills/code-review/).
+Read the review check definition at:
+{absolute path to sub-skills/{check-name}/SKILL.md}
 
-Then apply those criteria to the following files only:
-{filtered file list relevant to this sub-skill}
+That file defines the criteria. Apply them to the files below.
 
-Filtered diff:
-{the diff for those files, not the whole diff}
+Severity scale: 🔴 Critical (blocks) / 🟠 High (strongly blocks) / 🟡 Medium (should fix) / 💭 Low (suggestion) / ⚠️ Manual (developer-verify). Use these exact labels. Definitions are in the main orchestrator SKILL.md; the sub-skill file refines them with category-specific examples.
 
-Tech stack: {detected stack summary — Java/Spring Boot/Gradle}
-Severity scale: 🔴 Critical / 🟠 High / 🟡 Medium / 💭 Low / ⚠️ Manual
-  (definitions match the main SKILL.md severity scale — restate exact criteria)
+Files in scope:
+{filtered file list — only files relevant to this sub-skill}
 
-CLAUDE.md content (if present):
-{paste full contents}
+Filtered diff (only these files, not the whole diff):
+{the diff for those files}
 
-Feature context (source: PR description / context.md / developer answer / "general review"):
-{the PR title + body if PR mode used it, OR context.md contents, OR the developer's answer to step 2b, OR "general review, no specific feature"}
+Repo context to read on demand (do NOT expect this pasted):
+- CLAUDE.md at the repo root, plus any CLAUDE.md in directories the diff touches — read with the Read tool if present. If not present, proceed without.
+- Other files in the repo as needed to understand the change.
 
-PR context (PR mode only):
-{PR title, description, commit message summary, head SHA}
+Feature context: {one paragraph — PR title+body, OR context.md contents, OR developer answer, OR "general review, no specific feature"}
 
-Test results (from step 4):
-{pass/fail status, failing tests, coverage data — or "tests not run"}
+Test results: {pass/fail summary, or "tests not run", or "CI green"}
 
-Return findings using the sub-skill's output format. ONLY report failures —
-omit the "what passed" sections from your output. Use objective severity.
-Do NOT speculate — if you can't construct an input that triggers a bug, drop the finding.
+Tech stack: Java + Spring Boot + Gradle. (Don't assume Maven, Python, or .yml.)
+
+Return findings using the sub-skill's output format. ONLY report failures — omit "what passed" sections. Use objective severity. Don't speculate — if you can't construct an input that triggers a bug, drop the finding.
 ```
+
+**Why agents read CLAUDE.md instead of getting it pasted:** with N parallel agents, a pasted CLAUDE.md costs N × its size in tokens before any work happens. Each agent has Read tool access and only needs CLAUDE.md if a finding hinges on a convention. Reading on demand keeps the parallel fan-out cheap.
 
 **Filtering the diff per sub-skill** is critical:
 - `relational-db` gets `@Entity` files, JPA repositories, `JdbcTemplate` usage, files referencing `EntityManager`

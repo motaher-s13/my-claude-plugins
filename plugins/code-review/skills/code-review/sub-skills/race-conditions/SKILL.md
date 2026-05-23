@@ -17,15 +17,9 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project concurrency conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | Lost updates on financial / inventory / counter state under realistic concurrency (no `@Version`, no `SELECT ... FOR UPDATE`, no atomic DB operation), unique-constraint enforced in code via `SELECT` then `INSERT` (race window allows duplicates), non-idempotent retry on at-least-once delivery |
-| 🟠 High | Static mutable state read/written without synchronization, double-checked locking missing `volatile`, `@Async` sharing a non-thread-safe collection (`HashMap`/`ArrayList`), distributed lock without unique-token release (caller B releases A's lock) |
-| 🟡 Medium | Check-then-act where atomic would be cleaner (`if (!map.containsKey(k)) map.put(k, v)` → `putIfAbsent`), iteration over a collection mutated by another thread, optimistic lock failures not handled / retried |
-| 💭 Low | Naming inconsistency on a lock / atomic variable, minor concurrency-related comment improvement |
-| ⚠️ Manual | Cannot verify from code — developer must reason about concurrency at runtime, or run a stress test |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). Category examples are inline in the focus areas below.
 
 For each finding, describe the concrete race scenario: *"Thread A reads value V, Thread B reads value V, both increment and write V+1; one increment is lost."*
 

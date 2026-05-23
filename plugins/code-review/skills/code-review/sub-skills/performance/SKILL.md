@@ -19,15 +19,9 @@ Database-level performance (N+1 from JPA, missing indexes, query plans) is **own
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project performance conventions
 
-## Severity Scale
+## Severity
 
-| Severity | Criteria |
-|---|---|
-| 🔴 Critical | O(n²)/O(n³) on unbounded user input, unbounded memory growth in a request, **synchronous external HTTP call with no timeout** (request handler hangs forever), **external HTTP call that buffers an unbounded response body into memory** (single 5GB response = OOM) |
-| 🟠 High | N+1 of external API calls in hot path, blocking I/O on request thread doing > seconds of work, large payload buffered fully in memory (could stream), thread pool size doesn't match workload, external HTTP call missing a response-size cap even if timeout is set (slow drip of bytes still uses memory) |
-| 🟡 Medium | Missed parallelism opportunity (`CompletableFuture.allOf`), unnecessary deep copy, missing cache on repeated computation, expensive computation re-run per request |
-| 💭 Low | Minor optimization opportunity, cosmetic efficiency improvement |
-| ⚠️ Manual | Cannot verify from code — developer must profile under load |
+Use the orchestrator's 5-level scale (Critical/High/Medium/Low/Manual). External API calls missing BOTH timeout and response-size cap are Critical; missing one is High. Other examples are inline in the focus areas.
 
 For each finding, estimate impact: *"how would this behave with 10x, 100x, 1000x of the input size?"*
 
