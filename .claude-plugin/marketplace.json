@@ -8,11 +8,11 @@
   "plugins": [
     {
       "name": "code-review",
-      "description": "Context-aware code review orchestrator that dispatches parallel sub-skill checks (Java/Spring, Python/Flask, MySQL, MongoDB, Redis, RabbitMQ) and produces line-anchored findings.",
+      "description": "Java/Spring Boot code-review orchestrator. Reviews local branch diffs vs main and GitHub PRs by dispatching parallel sub-skill checks (relational-db, mongo-as-logging, redis, rabbitmq, transactional-faults, race-conditions, spring-framework, security, performance, error-handling+disk-writes, test-coverage, code-quality, config-dependencies) and produces line-anchored findings.",
       "source": "./plugins/code-review",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "code-review",
-      "tags": ["code-review", "spring", "flask", "mysql", "mongodb", "redis", "rabbitmq"]
+      "tags": ["code-review", "pr-review", "spring-boot", "java", "gradle", "mysql", "mongodb", "redis", "rabbitmq"]
     }
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: code-review/code-quality
-description: "Code quality, naming, structure, and convention adherence for Java/Spring (Java naming conventions, Lombok use, Optional handling, immutability, layer boundaries: controller → service → repository, builder vs setter) and Python (PEP 8 / PEP 484 type hints, ABCs, dataclasses). Plus duplication, complexity, dead code, magic values, and CLAUDE.md compliance."
+description: "Code quality, naming, structure, and convention adherence for Java/Spring Boot (Java naming conventions, Lombok use, Optional handling, immutability, layer boundaries: controller → service → repository, builder vs setter). Plus duplication, complexity, dead code, magic values, and CLAUDE.md compliance."
 trigger: "When the review orchestrator dispatches this check."
 ---
 
@@ -12,8 +12,8 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 ## Inputs You Receive
 
-- **Filtered diff:** all source code files in the diff (Java, Python)
-- **Tech stack summary:** Java/Spring/Python/Flask versions, Lombok presence, type-hint discipline
+- **Filtered diff:** all source code files in the diff (Java)
+- **Tech stack summary:** Java + Spring Boot version, Lombok presence
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project conventions — **check this FIRST before flagging any deviation**
 
@@ -40,14 +40,6 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **Repositories:** `<Entity>Repository`.
 - **Services:** `<Domain>Service`.
 - **DTOs:** `<Name>Request` / `<Name>Response` / `<Name>Dto` per project convention.
-
-### Python naming conventions (PEP 8)
-
-- **Modules:** `lower_snake_case.py`.
-- **Classes:** `PascalCase`.
-- **Functions / variables:** `lower_snake_case`.
-- **Constants:** `UPPER_SNAKE_CASE`.
-- **Internal:** single leading underscore.
 
 ### Function / class complexity
 
@@ -76,15 +68,6 @@ You do NOT write or fix code. You flag findings for the developer to address.
 - **`@ToString` includes all fields** — leaks sensitive data when logged. Use `@ToString.Exclude` on sensitive fields.
 - **`@Builder` on JPA entities** — caveats around null defaults and constructor mismatches.
 - **`@Slf4j`** — fine.
-
-### Python specifics
-
-- **Type hints** on public functions / methods (PEP 484). Mypy / pyright friendly.
-- **Dataclasses** (`@dataclass`) for value objects over plain classes with `__init__`.
-- **`Optional[T]`** for nullable returns — but prefer raising or returning a default when reasonable.
-- **Mutable default arguments** (`def f(x=[])`) — classic bug. Flag.
-- **`__init__`-only init then mutation** vs immutable dataclasses — prefer immutable where possible.
-- **`assert` in production code** — `python -O` skips asserts. Use exceptions for runtime checks.
 
 ### Layer boundaries
 
@@ -131,9 +114,8 @@ The user's stack is layered: **Controller → Service → Repository**.
 
 ### File and package structure
 
-- **One public class per file** (Java) — enforced by compiler usually.
+- **One public class per file** — enforced by compiler usually.
 - **Test file alongside production file in test source root** with parallel package.
-- **Module organization** in Python — flat for small projects, packages for larger.
 
 ### Spring component stereotypes
 
@@ -152,6 +134,8 @@ Common CLAUDE.md rules in this stack:
 - Required patterns (e.g., "every service method must be `@Transactional`")
 - Naming conventions specific to the project
 
+Plus the stack-wide rules baked into other sub-skills (don't read from Mongo, disk writes must be temp+cleaned, external API calls need timeout+size cap, tests must be in-memory). If `code-quality` notices a violation of those rules in the same file, defer to the owning sub-skill — don't double-report.
+
 ## False Positive Mitigation
 
 1. **Read existing code first.** If a "violation" matches the project's existing pattern, it's the convention, not a finding.
@@ -169,6 +153,8 @@ Common CLAUDE.md rules in this stack:
 
 ## Output Format
 
+**Report failures only. Do not enumerate passing items or files that came back clean.**
+
 ### Findings Table
 
 | # | Severity | File | Line | Issue | Recommendation |
@@ -178,18 +164,7 @@ Common CLAUDE.md rules in this stack:
 ### Zero-Findings Output
 
 ```
-## Code Quality & Conventions
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `controller/UserController.java` — layer boundaries ⚠️ → Finding #1, naming ✅, imports ✅
-- [x] `service/OrderService.java` — function length ✅, complexity ✅, Optional handling ✅
-- [x] `entity/User.java` — Lombok @Data risk (mass assignment) checked, `@ToString.Exclude password` ✅
+## Code Quality & Conventions — no findings
 ```
 
 ### Review Comments

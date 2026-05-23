@@ -1,6 +1,6 @@
 ---
 name: code-review/redis
-description: "Redis usage analysis: blocking commands, O(N) commands on large collections, missing TTLs, key bloat, cache invalidation correctness (write-through / write-behind / cache-aside bugs), distributed lock races (SETNX without TTL, lock release in error paths), pipelining opportunities, and Spring cache annotation pitfalls (@Cacheable/@CacheEvict/@CachePut). Covers Spring Data Redis, Lettuce, Jedis, and Python redis-py."
+description: "Redis usage analysis for Java/Spring: blocking commands, O(N) commands on large collections, missing TTLs, key bloat, cache invalidation correctness (write-through / write-behind / cache-aside bugs), distributed lock races (SETNX without TTL, lock release in error paths), pipelining opportunities, and Spring cache annotation pitfalls (@Cacheable/@CacheEvict/@CachePut). Covers Spring Data Redis, Lettuce, and Jedis."
 trigger: "When the review orchestrator dispatches this check."
 ---
 
@@ -12,8 +12,8 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 ## Inputs You Receive
 
-- **Filtered diff:** `RedisTemplate` / `StringRedisTemplate` usage, Lettuce / Jedis direct calls, Spring cache annotations (`@Cacheable`, `@CacheEvict`, `@CachePut`, `@Caching`), Python `redis-py` usage, Redisson code
-- **Tech stack summary:** Redis version, single-node / sentinel / cluster, persistence mode (RDB/AOF), Spring Boot version
+- **Filtered diff:** `RedisTemplate` / `StringRedisTemplate` usage, Lettuce / Jedis direct calls, Spring cache annotations (`@Cacheable`, `@CacheEvict`, `@CachePut`, `@Caching`), Redisson code
+- **Tech stack summary:** Java + Spring Boot, Redis version, single-node / sentinel / cluster, persistence mode (RDB/AOF)
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project caching conventions
 
@@ -73,7 +73,7 @@ The single biggest source of bugs.
 
 ### Pipelining
 
-- **N round-trips in a loop** — bundle with `RedisTemplate.executePipelined(...)` or `pipeline()` in `redis-py`.
+- **N round-trips in a loop** — bundle with `RedisTemplate.executePipelined(...)`.
 - **`MGET` / `MSET`** — single round-trip vs N — use them for batch reads/writes.
 
 ### Memory and key design
@@ -108,6 +108,8 @@ The single biggest source of bugs.
 
 ## Output Format
 
+**Report failures only. Do not enumerate passing items or files that came back clean.**
+
 ### Findings Table
 
 | # | Severity | File | Line | Issue | Impact | Recommendation |
@@ -117,18 +119,7 @@ The single biggest source of bugs.
 ### Zero-Findings Output
 
 ```
-## Redis
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `service/InventoryLock.java` — lock TTL ⚠️ → Finding #1, release path ⚠️ → Finding #1
-- [x] `cache/UserCache.java` — TTL ✅, key gen ✅, evict ordering ✅
-- [x] `service/ProductService.java` — pipelining ✅, blocking cmds ✅
+## Redis — no findings
 ```
 
 ### Review Comments

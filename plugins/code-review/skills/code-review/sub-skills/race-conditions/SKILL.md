@@ -170,6 +170,8 @@ In code that interacts with the filesystem, external state, or DB rows that aren
 
 ## Output Format
 
+**Report failures only. Do not enumerate passing items or files that came back clean.**
+
 ### Findings Table
 
 | # | Severity | File | Line | Issue | Scenario | Recommendation |
@@ -179,18 +181,7 @@ In code that interacts with the filesystem, external state, or DB rows that aren
 ### Zero-Findings Output
 
 ```
-## Race Conditions
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `service/InventoryService.java` — read-modify-write ⚠️ → Finding #1, uniqueness ✅, locks ✅
-- [x] `cache/SessionCache.java` — concurrent map ✅, atomic ops ✅
-- [x] `async/EmailQueue.java` — shared state ✅, fixedRate overlap ✅ (ShedLock present)
+## Race Conditions — no findings
 ```
 
 ### Review Comments

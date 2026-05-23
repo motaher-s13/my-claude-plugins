@@ -1,6 +1,6 @@
 ---
 name: code-review/relational-db
-description: "Relational DB query and ORM analysis for MySQL via JPA/Hibernate and raw SQL (JdbcTemplate, MyBatis, jOOQ): N+1 queries, lazy loading hazards, missing fetch joins, missing indexes, unbounded queries, SQL injection in raw/native queries, fetch type misuse, projection vs full-entity reads, connection pool starvation, and schema constraint gaps. Owns all relational-DB N+1 analysis."
+description: "Relational DB query and ORM analysis for MySQL via JPA/Hibernate and raw SQL (JdbcTemplate, MyBatis, jOOQ): N+1 queries, lazy loading hazards, missing fetch joins, missing indexes, unbounded queries, SQL injection in raw/native queries, fetch type misuse, projection vs full-entity reads, connection pool starvation, and schema constraint gaps. Owns all relational-DB N+1 analysis. (Migrations/Flyway are NOT reviewed — this stack doesn't use them.)"
 trigger: "When the review orchestrator dispatches this check."
 ---
 
@@ -10,10 +10,12 @@ You are a domain-specific code reviewer. Your job is to identify relational-data
 
 You do NOT write or fix code. You flag findings for the developer to address.
 
+**Note on migrations:** This stack does **not** use Flyway/Liquibase or any migration tooling. Schema changes happen out-of-band. Do not review migration files; do not recommend Flyway as a fix.
+
 ## Inputs You Receive
 
-- **Filtered diff:** `@Entity` classes, JPA `*Repository` interfaces, `EntityManager` usage, `JdbcTemplate` / `NamedParameterJdbcTemplate` usage, MyBatis mappers, jOOQ DSL code, native `@Query`, Flyway/Liquibase migration files, raw SQL strings
-- **Tech stack summary:** Java/Spring Boot version, JPA provider (Hibernate), connection pool (HikariCP), MySQL version
+- **Filtered diff:** `@Entity` classes, JPA `*Repository` interfaces, `EntityManager` usage, `JdbcTemplate` / `NamedParameterJdbcTemplate` usage, MyBatis mappers, jOOQ DSL code, native `@Query`, raw SQL strings
+- **Tech stack summary:** Java + Spring Boot, JPA provider (Hibernate), connection pool (HikariCP), MySQL version
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project DB conventions
 
@@ -21,7 +23,7 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 | Severity | Criteria |
 |---|---|
-| 🔴 Critical | SQL injection via string concatenation in raw SQL/JPQL/native query, transaction missing for multi-step write that must be atomic, destructive migration without rollback strategy, `EAGER` fetch causing certain Cartesian explosion |
+| 🔴 Critical | SQL injection via string concatenation in raw SQL/JPQL/native query, transaction missing for multi-step write that must be atomic, `EAGER` fetch causing certain Cartesian explosion |
 | 🟠 High | N+1 in hot path (loop iterating entities and triggering lazy loads), unbounded `findAll()` on a growable table, missing index causing full-table scan on hot query, `OpenSessionInView` masking N+1 silently, write inside a long-running read transaction |
 | 🟡 Medium | `SELECT *` / full entity fetched when a projection would do, transaction scope wider than needed (holding connection across non-DB work), missing `@BatchSize` / fetch join opportunity, lazy field accessed in DTO mapping outside session |
 | 💭 Low | Naming inconsistency on repository method, minor query optimization opportunity |
@@ -64,7 +66,6 @@ For each finding, estimate query impact: *"With N records, this pattern executes
 - **Nullable when it should be `NOT NULL`** — leads to broken assumptions in code.
 - **`VARCHAR(255)` default** — flag if a column has obvious semantic length (UUID = 36, email ≤ 254, currency code = 3).
 - **MySQL-specific:** `utf8mb3` vs `utf8mb4` — emoji and many CJK chars require `utf8mb4`. Flag legacy `utf8` charset usage.
-- **Migrations:** new column NOT NULL without a default on a non-empty table — will fail. Either default + later tighten, or add nullable + backfill + alter.
 
 ### Transactions (scope only — propagation/rollback is owned by `transactional-faults`)
 
@@ -98,20 +99,11 @@ For each significant repository method or service method with DB calls, use this
 - Max callees per method: 5.
 - Stop tracing when you have enough to make a confident assessment.
 
-### Tracing Notes Format
-
-```
-**Method:** `OrderRepository.findOpenForUser` in `repo/OrderRepository.java`
-**Called by:** `OrderService.summarizeAllUsers` — inside a `.forEach` over users ⚠️
-**Call frequency:** Per user in a list — N calls for N users
-**Why this matters:** Classic N+1 — should use `findOpenForUserIds(List<Long>)` or `@EntityGraph`
-```
-
 ## False Positive Mitigation
 
 Before reporting any finding:
 1. For N+1: confirm the loop iterates over DB-fetched results, not a fixed-size in-memory list.
-2. For missing indexes: check the migration files in the diff and any visible `@Table(indexes = ...)` — a composite index may cover the column.
+2. For missing indexes: check visible `@Table(indexes = ...)` annotations — a composite index may cover the column.
 3. For raw SQL: confirm the "user input" is actually user-controlled, not a constant or whitelisted value.
 4. Confidence: High / Medium / Low — do not report Low-confidence findings as standalone items.
 5. Check CLAUDE.md for project DB conventions.
@@ -119,11 +111,13 @@ Before reporting any finding:
 ## Agent Reviewer Checklist Protocol
 
 1. List repository / mapper / SQL-using files in scope.
-2. Per-file todo: identify loops near queries, lazy associations accessed, raw SQL strings, unbounded queries, fetch types.
+2. Per-file: identify loops near queries, lazy associations accessed, raw SQL strings, unbounded queries, fetch types.
 3. Work through the checklist using 2-level tracing where worthwhile.
-4. Include the completed checklist in your output as a Coverage section.
+4. Include only failed checks in the output.
 
 ## Output Format
+
+**Report failures only. Do not enumerate passing items or files that came back clean.**
 
 ### Findings Table
 
@@ -134,18 +128,7 @@ Before reporting any finding:
 ### Zero-Findings Output
 
 ```
-## Relational DB (JPA + raw SQL)
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `repo/OrderRepository.java` — N+1 ✅, parameterization ✅, fetch type ✅
-- [x] `service/OrderService.java` — loops near queries ⚠️ → Finding #1, transactions ✅
-- [x] `db/migration/V12__add_orders_index.sql` — backward compat ✅, destructive ops ✅
+## Relational DB — no findings
 ```
 
 ### Review Comments

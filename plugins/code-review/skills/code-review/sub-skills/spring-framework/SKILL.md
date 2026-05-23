@@ -12,7 +12,7 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 ## Inputs You Receive
 
-- **Filtered diff:** `@Component`, `@Service`, `@Repository`, `@Configuration`, `@Bean`, `@ConfigurationProperties`, `@Value`, `@Profile`, `@Conditional*`, `@Async`, `@Scheduled`, `@EnableXxx`, Actuator config, `application.yml` / `application.properties`, `WebMvcConfigurer`, `WebSecurityConfigurerAdapter` (legacy) / `SecurityFilterChain`
+- **Filtered diff:** `@Component`, `@Service`, `@Repository`, `@Configuration`, `@Bean`, `@ConfigurationProperties`, `@Value`, `@Profile`, `@Conditional*`, `@Async`, `@Scheduled`, `@EnableXxx`, Actuator config, `application.properties` / `application.properties`, `WebMvcConfigurer`, `WebSecurityConfigurerAdapter` (legacy) / `SecurityFilterChain`
 - **Tech stack summary:** Spring Boot version, Spring versions, AOT/native build vs JVM
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project Spring conventions
@@ -21,10 +21,10 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 | Severity | Criteria |
 |---|---|
-| 🔴 Critical | Actuator sensitive endpoint exposed without auth (`/actuator/env`, `/actuator/heapdump`), secret hardcoded in `application.yml` committed to repo, scope mismatch causing data corruption (singleton holding request-scoped state) |
+| 🔴 Critical | Actuator sensitive endpoint exposed without auth (`/actuator/env`, `/actuator/heapdump`), secret hardcoded in `application.properties` committed to repo, scope mismatch causing data corruption (singleton holding request-scoped state) |
 | 🟠 High | Field injection blocking testability and hiding null deps, circular dependency masked by `@Lazy`, `@Scheduled` / `@Async` annotation present but `@EnableScheduling` / `@EnableAsync` missing → silent no-op, `@Bean` method in a `@Component` (not `@Configuration`) → no CGLIB caching → multiple instances |
 | 🟡 Medium | `@Value` with no default and missing property → context fails to start in some envs, `@ConfigurationProperties` missing `@Validated` on a critical config, two `@Profile`s overlap leading to ambiguous bean, multiple `@Bean` of same type without `@Primary` or `@Qualifier` |
-| 💭 Low | Naming inconsistency on bean names, missing `@Component` stereotype refinement (use `@Service` for services), `application-{profile}.yml` formatting |
+| 💭 Low | Naming inconsistency on bean names, missing `@Component` stereotype refinement (use `@Service` for services), `application-{profile}.properties` formatting |
 | ⚠️ Manual | Cannot verify from code — developer must check runtime startup logs, bean graph, or property resolution |
 
 ## Your Focus Areas
@@ -97,7 +97,6 @@ For more than 2–3 related properties, `@ConfigurationProperties` is the right 
 - `@Transactional`, `@Async`, `@Cacheable`, `@Scheduled` all rely on proxies. **Self-invocation** (`this.method()` from same class) bypasses the proxy → annotation no-op.
 - `final` methods on bean classes → CGLIB can't proxy → annotation no-op.
 - `private` methods with proxy-style annotations → no-op.
-- Kotlin: classes are `final` by default — use `open` or `kotlin-spring` plugin.
 
 ### `ApplicationContext` antipatterns
 
@@ -119,12 +118,11 @@ For more than 2–3 related properties, `@ConfigurationProperties` is the right 
 - Mixing `WebFlux` and `Web MVC` controllers in the same app rarely works cleanly. Verify the project doesn't accidentally pull in both starters.
 - Calling blocking JDBC from reactive endpoint — blocks the event loop. Flag.
 
-### `application.yml` / properties
+### `application.properties` / properties
 
-- Secrets in `application.yml` committed to repo — `High`/`Critical` depending on whether it's a real secret. Use env vars or a secrets manager.
-- Profile-specific files (`application-dev.yml`, `application-prod.yml`) committed with non-prod values acceptable for dev, but prod values should not be in repo.
-- Duplicate keys silently overwritten — YAML doesn't fail on this.
-- Mixing flat properties (`application.properties`) and YAML — both work but causes confusion.
+- Secrets in `application.properties` committed to repo — `High`/`Critical` depending on whether it's a real secret. Use env vars or a secrets manager.
+- Profile-specific files (`application-dev.properties`, `application-prod.properties`) committed with non-prod values acceptable for dev, but prod values should not be in repo.
+- `.yml` / `.yaml` introduced — out of convention; `config-dependencies` owns the finding, don't double-report.
 
 ## False Positive Mitigation
 
@@ -143,6 +141,8 @@ For more than 2–3 related properties, `@ConfigurationProperties` is the right 
 
 ## Output Format
 
+**Report failures only. Do not enumerate passing items or files that came back clean.**
+
 ### Findings Table
 
 | # | Severity | File | Line | Issue | Recommendation |
@@ -152,18 +152,7 @@ For more than 2–3 related properties, `@ConfigurationProperties` is the right 
 ### Zero-Findings Output
 
 ```
-## Spring Framework
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `config/Wiring.java` — @Configuration vs @Component ⚠️ → Finding #1, DI style ✅
-- [x] `config/ActuatorConfig.java` — endpoint exposure ✅, /env protection ✅
-- [x] `service/OrderService.java` — constructor injection ✅, @Transactional proxy ✅
+## Spring Framework — no findings
 ```
 
 ### Review Comments

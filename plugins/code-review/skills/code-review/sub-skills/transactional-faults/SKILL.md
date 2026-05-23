@@ -168,6 +168,8 @@ Also: `@Transactional` on a method that **calls** an `@Async` method — the asy
 
 ## Output Format
 
+**Report failures only. Do not enumerate passing items or files that came back clean.**
+
 ### Findings Table
 
 | # | Severity | File | Line | Issue | Recommendation |
@@ -177,18 +179,7 @@ Also: `@Transactional` on a method that **calls** an `@Async` method — the asy
 ### Zero-Findings Output
 
 ```
-## Transactional Faults
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `service/OrderService.java` — self-invocation ⚠️ → Finding #1, rollback rules ✅, external I/O ✅
-- [x] `service/PaymentService.java` — propagation ✅, readOnly ✅, timeout ✅
-- [x] `async/EmailSender.java` — @Async + @Transactional understood ✅
+## Transactional Faults — no findings
 ```
 
 ### Review Comments

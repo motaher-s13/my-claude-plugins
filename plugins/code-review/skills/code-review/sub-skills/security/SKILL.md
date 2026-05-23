@@ -1,6 +1,6 @@
 ---
 name: code-review/security
-description: "Security review for Java/Spring and Python/Flask: authentication and authorization (Spring Security filter chain, @PreAuthorize, Flask-Login), JWT handling, input validation (Bean Validation, Pydantic, marshmallow), injection (SQL, command, template, header, log, LDAP), secrets / credentials in source, sensitive data in logs and errors, CORS, CSRF, JWT, file uploads, Spring-specific vulnerabilities (Actuator exposure, deserialization, SpEL injection), Flask-specific (debug mode RCE, session cookie config), and OWASP Top 10."
+description: "Security review for Java/Spring Boot: authentication and authorization (Spring Security filter chain, @PreAuthorize), JWT handling, input validation (Bean Validation), injection (SQL, command, template, header, log, LDAP), secrets / credentials in source, sensitive data in logs and errors, CORS, CSRF, file uploads, Spring-specific vulnerabilities (Actuator exposure, deserialization, SpEL injection), and OWASP Top 10."
 trigger: "When the review orchestrator dispatches this check."
 ---
 
@@ -12,8 +12,8 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 ## Inputs You Receive
 
-- **Filtered diff:** controllers / route handlers, security configuration (`SecurityFilterChain`, `WebSecurityConfigurerAdapter`, Flask-Login config), authentication code, JWT handling, input validation code, file upload handlers, error handlers, config files (`application.yml`, env), dependency manifests
-- **Tech stack summary:** Spring Boot version, Spring Security version, JWT library, Python/Flask version, validation libs in use
+- **Filtered diff:** controllers, security configuration (`SecurityFilterChain`, `WebSecurityConfigurerAdapter`), authentication code, JWT handling, input validation code, file upload handlers, error handlers, config files (`application.properties`, env), dependency manifests
+- **Tech stack summary:** Java + Spring Boot, Spring Security version, JWT library, validation libs in use
 - **Severity scale:** see below
 - **CLAUDE.md content** (if present) for project auth and security conventions
 
@@ -21,7 +21,7 @@ You do NOT write or fix code. You flag findings for the developer to address.
 
 | Severity | Criteria |
 |---|---|
-| 🔴 Critical | SQL injection, command injection, deserialization RCE, exposed credentials, auth bypass, SSRF to internal services, Spring4Shell-style template-engine RCE, debug mode in prod |
+| 🔴 Critical | SQL injection, command injection, deserialization RCE, exposed credentials, auth bypass, SSRF to internal services, Spring4Shell-style template-engine RCE |
 | 🟠 High | Missing auth check on a sensitive route, JWT signature verification skipped or weak algorithm allowed, CORS misconfiguration with credentials, rate limiting gap on auth endpoint, mass assignment of privileged fields, secret in logs |
 | 🟡 Medium | Sensitive data in logs / error responses, missing security header, overly permissive input, CSRF disabled on cookie-auth state-changing route, weak password policy |
 | 💭 Low | Defense-in-depth suggestion, minor hardening opportunity, missing rate limit on non-sensitive route |
@@ -46,41 +46,34 @@ For Critical and High findings, briefly explain the attack vector.
 #### JWT
 
 - **Algorithm enforcement:** verify the library is configured to require a specific algorithm. Many libs accept `alg: none` if not explicitly disabled — flag.
-- **Secret hardcoded** in code or `application.yml`. Use env / secrets manager.
+- **Secret hardcoded** in code or `application.properties`. Use env / secrets manager.
 - **HS256 with short secret** — secret should be cryptographically random and ≥ 256 bits.
 - **Token expiration** — must be set; tokens without `exp` claim live forever.
 - **Refresh token storage** — refresh tokens should be revocable (stored server-side with state), not just symmetric long-lived JWTs.
 - **Sensitive data in JWT payload** — payload is base64, not encrypted. PII / secrets do not belong there.
 - **`kid` header from untrusted source** picking the wrong key — modern libs handle this, but verify the lib config.
 
-#### Flask
-
-- `Flask-Login` `login_required` decorator present on auth'd routes.
-- `flask-jwt-extended` config — `JWT_SECRET_KEY` from env, `JWT_ACCESS_TOKEN_EXPIRES` set.
-- Custom auth checks: ensure short-circuit before handler runs (return `Response`, not `None`).
-
 ### Input validation
 
-- **Java/Spring:** Bean Validation (`@Valid`, `@Validated`, `@NotNull`, `@NotBlank`, `@Size`, `@Pattern`, `@Email`) on controller args. Custom `ConstraintValidator` where domain rules require. `@RequestBody` without `@Valid` is unvalidated input.
-- **Python/Flask:** `marshmallow`, `pydantic`, `flask-pydantic`. Validate before any DB / service call.
-- **Mass assignment:** binding a request DTO directly to a `User` entity with `role`, `enabled`, `id` fields lets the client set them. Use a request-specific DTO or `@JsonIgnore` / `Pydantic` config to exclude.
+- **Bean Validation** (`@Valid`, `@Validated`, `@NotNull`, `@NotBlank`, `@Size`, `@Pattern`, `@Email`) on controller args. Custom `ConstraintValidator` where domain rules require. `@RequestBody` without `@Valid` is unvalidated input.
+- **Mass assignment:** binding a request DTO directly to a `User` entity with `role`, `enabled`, `id` fields lets the client set them. Use a request-specific DTO or `@JsonIgnore` to exclude.
 - **Lombok `@Data` exposes setters** — combined with `@Entity` and direct request binding, all fields are settable. Flag.
 
 ### Injection
 
 - **SQL injection** — covered in detail by the `relational-db` and `mongodb` sub-skills. Re-flag from the security angle if user input reaches a query without binding.
-- **Command injection** — `Runtime.getRuntime().exec(...)`, `ProcessBuilder` with concatenated user input, Python `subprocess.run(shell=True)` with user input. Use list form and never `shell=True` with user input.
+- **Command injection** — `Runtime.getRuntime().exec(...)`, `ProcessBuilder` with concatenated user input. Use the array/list form, never a single concatenated string with shell metacharacters.
 - **Header injection** — `response.setHeader(name, userInput)` where user input contains `\r\n` → response splitting. Newer servlets reject this but verify.
 - **Log injection** — user input directly into log messages with newlines lets attackers forge log entries.
-- **Template injection** — Thymeleaf with user-controlled template input → SpEL → RCE. Flask Jinja with `render_template_string(user_input)` → SSTI → RCE.
+- **Template injection** — Thymeleaf with user-controlled template input → SpEL → RCE.
 - **SpEL injection** — `@Value` / `@PreAuthorize` with user-controlled strings, `SpelExpressionParser.parseExpression(userInput)` — RCE.
 - **LDAP injection** — `LdapTemplate.search` with concatenated input — flag.
 - **XML / XXE** — old XML parsers without `FEATURE_SECURE_PROCESSING`. Modern Spring defaults are safe, but legacy code may not be.
-- **Deserialization** — `ObjectInputStream` on untrusted data → RCE. Python `pickle.loads` on untrusted data → RCE. Use JSON, never native serialization.
+- **Deserialization** — `ObjectInputStream` on untrusted data → RCE. Use JSON, never native serialization.
 
 ### Data exposure
 
-- **Stack traces in responses** — Spring's `application.yml`: `server.error.include-stacktrace=never` in prod. Flask: don't return debug info.
+- **Stack traces in responses** — `server.error.include-stacktrace=never` in `application.properties` for prod.
 - **Sensitive fields in API response** — `password`, `passwordHash`, `secret`, `mfaSeed`, internal IDs. Use a response DTO or `@JsonIgnore`.
 - **PII in logs** — emails, phone numbers, full names, addresses, credit cards, SSNs. Use structured logging with explicit fields, redact PII.
 - **Secrets in source / config** — DB URLs with credentials, JWT secrets, API keys. Always env / vault.
@@ -99,9 +92,9 @@ For Critical and High findings, briefly explain the attack vector.
 
 ### File uploads
 
-- **No size limit** → DoS. Spring: `spring.servlet.multipart.max-file-size`, `max-request-size`. Flask: `MAX_CONTENT_LENGTH`.
+- **No size limit** → DoS. Set `spring.servlet.multipart.max-file-size`, `spring.servlet.multipart.max-request-size`.
 - **Type by extension only** — bypassable. Check magic bytes.
-- **Path traversal** — `Files.copy(in, Paths.get(uploadDir, filename))` with `filename` containing `../`. Sanitize with `secure_filename` or compute canonical paths and verify they start with the upload dir.
+- **Path traversal** — `Files.copy(in, Paths.get(uploadDir, filename))` with `filename` containing `../`. Compute canonical paths and verify they start with the upload dir; strip directory components from the supplied filename.
 - **Filename as URL** — uploaded HTML/SVG can XSS / execute on the same origin. Serve uploads from a different domain or set `Content-Disposition: attachment` + `X-Content-Type-Options: nosniff`.
 
 ### Dependency & config security
@@ -109,7 +102,7 @@ For Critical and High findings, briefly explain the attack vector.
 - **`Actuator` exposure** — covered in `spring-framework` sub-skill, but flagged here too if a secret is in `/actuator/env`.
 - **`H2Console` enabled in prod** — exposes a JDBC console. Flag.
 - **`devtools` in prod build** — Spring DevTools exposes a remote endpoint.
-- **Vulnerable dependencies** — flag any added dependency with a known CVE (Log4Shell-shaped concerns). Suggest OWASP dependency-check / Snyk / `pip-audit`.
+- **Vulnerable dependencies** — flag any added dependency with a known CVE (Log4Shell-shaped concerns). Suggest OWASP dependency-check Gradle plugin or Snyk.
 
 ### Cryptography
 
@@ -128,17 +121,10 @@ For Critical and High findings, briefly explain the attack vector.
 - **Spring Cloud Function expression injection** — patched but worth checking.
 - **`@CrossOrigin(origins = "*")`** broadly applied.
 
-### Flask-specific
-
-- **`debug=True`** — RCE via Werkzeug debugger pin (often brute-forceable). Never in prod.
-- **`SECRET_KEY` from source** — sessions become forgeable.
-- **`render_template_string(user_input)`** — SSTI → RCE.
-- **`safe` filter** in Jinja — bypasses HTML escaping; dangerous on user input.
-
 ### Authentication implementation
 
 - **Login enumeration** — different responses for "user not found" vs "wrong password" leak account existence.
-- **Timing attacks** — string compare on hashed passwords with `==` may be timing-leaky; use `MessageDigest.isEqual` or `hmac.compare_digest`.
+- **Timing attacks** — string compare on hashed passwords with `==` may be timing-leaky; use `MessageDigest.isEqual`.
 - **Brute force** — login rate limit + account lockout (with care: don't enable account-lockout DoS by attackers).
 - **Password reset tokens** — single-use, time-limited, cryptographically random, stored hashed.
 
@@ -159,6 +145,8 @@ For Critical and High findings, briefly explain the attack vector.
 
 ## Output Format
 
+**Report failures only. Do not enumerate passing items or files that came back clean.**
+
 ### Findings Table
 
 | # | Severity | File | Line | Issue | Attack Vector | Recommendation |
@@ -168,18 +156,7 @@ For Critical and High findings, briefly explain the attack vector.
 ### Zero-Findings Output
 
 ```
-## Security
-**Result:** ✅ No findings.
-**Files reviewed:** {list}
-```
-
-### Coverage Checklist
-
-```
-### Coverage Checklist
-- [x] `controller/AdminController.java` — auth ⚠️ → Finding #1, input validation ✅, response shape ✅
-- [x] `config/SecurityConfig.java` — filter chain order ✅, CSRF posture ✅, CORS ✅
-- [x] `service/JwtService.java` — algorithm enforcement ✅, expiration ✅, secret source ✅
+## Security — no findings
 ```
 
 ### Review Comments
